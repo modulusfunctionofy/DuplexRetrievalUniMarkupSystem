@@ -1,0 +1,3 @@
+nohup: ignoring input
+MySQL connection failed: Access denied for user 'root'@'localhost'
+bind failed: Permission denied
