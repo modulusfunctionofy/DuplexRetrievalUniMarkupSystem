@@ -233,13 +233,22 @@ int main() {
         if (method == "GET" && path == "/api/me") {
             if (cur_session.user_id != -1) {
                 std::string json = "{\"username\":\"" + cur_session.username + "\"}";
-                std::string resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + std::to_string(json.size()) + "\r\n\r\n" + json;
+                std::string resp =
+                    "HTTP/1.1 200 OK\r\n" +
+                    CORS_HEADERS +
+                    "Content-Type: application/json\r\n" +
+                    "Content-Length: " + std::to_string(json.size()) + "\r\n\r\n" +
+                    json;
                 send(new_socket, resp.c_str(), resp.size(), 0);
             } else {
-                std::string resp = "HTTP/1.1 401 Unauthorized\r\n\r\n";
+                std::string resp =
+                    "HTTP/1.1 401 Unauthorized\r\n" +
+                    CORS_HEADERS +
+                    "\r\n";
                 send(new_socket, resp.c_str(), resp.size(), 0);
             }
-        } else if (method == "GET" && path == "/api/page/login") {
+        }
+        else if (method == "GET" && path == "/api/page/login") {
             std::string html = "<div class=\"auth-card\"><h2>Login</h2><form id=\"loginForm\"><div class=\"form-group\"><label>Username</label><input name=\"username\" required></div><div class=\"form-group\"><label>Password</label><input name=\"password\" type=\"password\" required></div><button type=\"submit\" class=\"auth-btn\">Log in</button></form><p class=\"auth-switch\">Don't have an account? <a href=\"#\" id=\"goto-signup\">Sign up</a></p></div>";
             std::string resp =
                 "HTTP/1.1 200 OK\r\n" +
@@ -283,7 +292,7 @@ int main() {
                     std::string resp =
                         "HTTP/1.1 200 OK\r\n" +
                         CORS_HEADERS +
-                        "Set-Cookie: session_id=" + sid + "; Path=/; HttpOnly\r\n" +
+                        "Set-Cookie: session_id=" + sid + "; Path=/; HttpOnly; SameSite=None; Secure\r\n" +
                         "Content-Type: application/json\r\n" +
                         "Content-Length: 15\r\n\r\n" +
                         "{\"status\":\"ok\"}";
@@ -359,7 +368,7 @@ int main() {
                 std::string sid = reqbuffer.substr(pos + 11, end - (pos + 11));
                 sessions.erase(sid);
             }
-            std::string resp = "HTTP/1.1 200 OK\r\nSet-Cookie: session_id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT\r\n\r\n";
+            std::string resp = "HTTP/1.1 200 OK\r\nSet-Cookie: session_id=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None; Secure\r\n\r\n";
             send(new_socket, resp.c_str(), resp.size(), 0);
 
         } else if (path == "/api/boards") {
