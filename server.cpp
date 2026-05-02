@@ -98,18 +98,27 @@ int main() {
     char client_ip[INET6_ADDRSTRLEN];
 
     conn = mysql_init(NULL);
+
     unsigned int dbport = DB_PORT ? atoi(DB_PORT) : 3306;
+
     if (!mysql_real_connect(conn, DB_HOST, DB_USER, DB_PASS, DB_NAME, dbport, NULL, 0)) {
         fprintf(stderr, "MySQL connection failed: %s\n", mysql_error(conn));
     } else {
         std::cout << "Successfully connected to MySQL database: " << DB_NAME << std::endl;
-        // Enable automatic reconnection
+
         bool reconnect = true;
         mysql_options(conn, MYSQL_OPT_RECONNECT, &reconnect);
-        // Ensure boards table exists
-        mysql_query(conn, "CREATE TABLE IF NOT EXISTS boards (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, title VARCHAR(255) DEFAULT 'Untitled Board', state LONGTEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)");
-    }
 
+        mysql_query(conn,
+            "CREATE TABLE IF NOT EXISTS boards ("
+            "id INT AUTO_INCREMENT PRIMARY KEY,"
+            "user_id INT NOT NULL,"
+            "title VARCHAR(255) DEFAULT 'Untitled Board',"
+            "state LONGTEXT,"
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
+            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)"
+        );
+    }
     if ((server_fd = socket(AF_INET6, SOCK_STREAM, 0)) == 0) { //socket funtion take 3 arguments (Domain, Type, Protocol): AF_INET6 (IPv6), SOCK_STREAM (TCP), 0 (IP) and returns a file descriptor
         perror("socket failed");
         exit(EXIT_FAILURE); // EXIT_FAILURE is a macro that is used to indicate that the program has failed, exit() is a function that is used to terminate the program
