@@ -81,11 +81,11 @@ std::string url_decode(const std::string& str) {
     return res;
 }
 
-// Ensures, match these to MySQL setup
-const char* DB_HOST = "localhost";
-const char* DB_USER = "root";
-const char* DB_PASS = "";
-const char* DB_NAME = "drums";
+const char* DB_HOST = getenv("DB_HOST");
+const char* DB_USER = getenv("DB_USER");
+const char* DB_PASS = getenv("DB_PASS");
+const char* DB_NAME = getenv("DB_NAME");
+const char* DB_PORT = getenv("DB_PORT");
 
 MYSQL* conn; 
 
@@ -98,7 +98,8 @@ int main() {
     char client_ip[INET6_ADDRSTRLEN];
 
     conn = mysql_init(NULL);
-    if (!mysql_real_connect(conn, DB_HOST, DB_USER, DB_PASS, DB_NAME, 0, NULL, 0)) {
+    unsigned int dbport = DB_PORT ? atoi(DB_PORT) : 3306;
+    if (!mysql_real_connect(conn, DB_HOST, DB_USER, DB_PASS, DB_NAME, dbport, NULL, 0)) {
         fprintf(stderr, "MySQL connection failed: %s\n", mysql_error(conn));
     } else {
         std::cout << "Successfully connected to MySQL database: " << DB_NAME << std::endl;
