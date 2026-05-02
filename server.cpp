@@ -114,7 +114,13 @@ int main() {
 
         bool reconnect = true;
         mysql_options(conn, MYSQL_OPT_RECONNECT, &reconnect);
-
+        mysql_query(conn,
+            "CREATE TABLE IF NOT EXISTS users ("
+            "id INT AUTO_INCREMENT PRIMARY KEY,"
+            "username VARCHAR(255) UNIQUE NOT NULL,"
+            "password VARCHAR(255) NOT NULL"
+            ")"
+        );
         mysql_query(conn,
             "CREATE TABLE IF NOT EXISTS boards ("
             "id INT AUTO_INCREMENT PRIMARY KEY,"
