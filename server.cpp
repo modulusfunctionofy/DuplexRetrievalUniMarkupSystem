@@ -128,7 +128,11 @@ int main() {
     memset(&address, 0, sizeof(address)); // memset is a function that is used to fill a block of memory with a specified value, parameters are (pointer to the memory block, value to be filled, size of the memory block)
     address.sin6_family = AF_INET6; // AF_INET6 is a macro that is used to indicate that the address family is IPv6
     address.sin6_addr = in6addr_any; // in6addr_any is a macro that is used to indicate that the address is any
-    address.sin6_port = htons(80); // htons is a function that is used to convert the port number to network byte order
+    int port = 10000;
+    char* envPort = getenv("PORT");
+    if (envPort) port = atoi(envPort);
+
+    address.sin6_port = htons(port);
 
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { // bind is a function that is used to bind a socket to a port
         perror("bind failed"); 
@@ -141,7 +145,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
     // perror is a function that is used to print the error message
-    std::cout << "Server listening on port 80 (IPv4 and IPv6)" << std::endl;
+    std::cout << "Server listening on port " << port << std::endl;
 
     while (true) {
         if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
