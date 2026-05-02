@@ -4,7 +4,7 @@ import { navigate } from '../router.js';
 import { fetchBoards, fetchBoardState, saveBoard, deleteBoard } from '../api/boards.js';
 import { startCompile, getCompileStatus } from '../api/compile.js';
 
-// Server A port on left (blue) (Reference Key), Server B port on right (green) (Response Sheet)
+const API_BASE = "https://drums-backend.onrender.com";
 export async function renderDashboard() {
     root.innerHTML = '<div class="auth-wrapper"><div class="auth-card"><p>Verifying session...</p></div></div>';
 
@@ -370,8 +370,9 @@ async function startRealUpload(entry, side) {
     renderFileList(side);
 
     try {
-        const res = await fetch('/api/upload', {
+        const res = await fetch(`${API_BASE}/api/upload`, {
             method: 'POST',
+            credentials: 'include',
             body: formData,
         });
 
@@ -927,7 +928,9 @@ async function handleCompile() {
                     downloadBtn.textContent = 'Download .xlsx';
                     downloadBtn.onclick = () => {
                         const a = document.createElement('a');
-                        a.href = statusData.url;
+                        a.href = statusData.url.startsWith('http')
+                            ? statusData.url
+                            : `${API_BASE}${statusData.url}`;
                         a.download = statusData.filename;
                         document.body.appendChild(a);
                         a.click();
