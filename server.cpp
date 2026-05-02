@@ -16,7 +16,13 @@
 #include <map> // It is used for associative arrays.
 #include <random> // It is used for random number generation.
 #include <mysql/mysql.h> // It is used for MySQL database operations.
+const std::string FRONTEND_ORIGIN = "https://drum-project-o4h3.onrender.com";
 
+const std::string CORS_HEADERS =
+    "Access-Control-Allow-Origin: " + FRONTEND_ORIGIN + "\r\n"
+    "Access-Control-Allow-Credentials: true\r\n"
+    "Access-Control-Allow-Headers: Content-Type\r\n"
+    "Access-Control-Allow-Methods: GET, POST, OPTIONS, DELETE\r\n";
 struct Session {
     int user_id;
     std::string username;
@@ -173,7 +179,19 @@ int main() {
         std::istringstream reqstream(reqbuffer); //Is reqstream is a function that is used to read data from a string stream
         std::string method, path;
         reqstream >> method >> path;
+        if (method == "OPTIONS") {
+            std::string response =
+                "HTTP/1.1 204 No Content\r\n"
+                "Access-Control-Allow-Origin: https://drum-project-o4h3.onrender.com\r\n"
+                "Access-Control-Allow-Credentials: true\r\n"
+                "Access-Control-Allow-Headers: Content-Type\r\n"
+                "Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n"
+                "\r\n";
 
+            send(new_socket, response.c_str(), response.size(), 0);
+            close(new_socket);
+            continue;
+        }
         int content_length = 0;
         {
             auto cl_pos = reqbuffer.find("Content-Length: ");
@@ -223,46 +241,117 @@ int main() {
             }
         } else if (method == "GET" && path == "/api/page/login") {
             std::string html = "<div class=\"auth-card\"><h2>Login</h2><form id=\"loginForm\"><div class=\"form-group\"><label>Username</label><input name=\"username\" required></div><div class=\"form-group\"><label>Password</label><input name=\"password\" type=\"password\" required></div><button type=\"submit\" class=\"auth-btn\">Log in</button></form><p class=\"auth-switch\">Don't have an account? <a href=\"#\" id=\"goto-signup\">Sign up</a></p></div>";
-            std::string resp = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + std::to_string(html.size()) + "\r\n\r\n" + html;
+            std::string resp =
+                "HTTP/1.1 200 OK\r\n" +
+                CORS_HEADERS +
+                "Content-Type: text/html\r\nContent-Length: " +
+                std::to_string(html.size()) +
+                "\r\n\r\n" + html;
             send(new_socket, resp.c_str(), resp.size(), 0);
         } else if (method == "GET" && path == "/api/page/signup") {
             std::string html = "<div class=\"auth-card\"><h2>Sign Up</h2><form id=\"signupForm\"><div class=\"form-group\"><label>Username</label><input name=\"username\" required></div><div class=\"form-group\"><label>Password</label><input name=\"password\" type=\"password\" required></div><div class=\"form-group\"><label>Confirm</label><input name=\"confirm\" type=\"password\" required></div><button type=\"submit\" class=\"auth-btn\">Create Account</button></form><p class=\"auth-switch\">Already have an account? <a href=\"#\" id=\"goto-login\">Log in</a></p></div>";
-            std::string resp = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + std::to_string(html.size()) + "\r\n\r\n" + html;
+            std::string resp =
+                "HTTP/1.1 200 OK\r\n" +
+                CORS_HEADERS +
+                "Content-Type: text/html\r\nContent-Length: " +
+                std::to_string(html.size()) +
+                "\r\n\r\n" + html;
             send(new_socket, resp.c_str(), resp.size(), 0);
         } else if (method == "POST" && path == "/api/login") {
             std::string username = extract_json_field(body, "username");
             std::string password = extract_json_field(body, "password");
-            std::string query = "SELECT id FROM users WHERE username='" + username + "' AND password='" + password + "'";
+
+            std::string query =
+                "SELECT id FROM users WHERE username='" +
+                username +
+                "' AND password='" +
+                password +
+                "'";
+
             if (mysql_query(conn, query.c_str()) == 0) {
+
                 MYSQL_RES* res = mysql_store_result(conn);
+
                 if (res && mysql_num_rows(res) > 0) {
+
                     MYSQL_ROW row = mysql_fetch_row(res);
                     int uid = atoi(row[0]);
+
                     std::string sid = generate_session_id();
                     sessions[sid] = {uid, username};
-                    std::string resp = "HTTP/1.1 200 OK\r\nSet-Cookie: session_id=" + sid + "; Path=/; HttpOnly\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
+
+                    std::string resp =
+                        "HTTP/1.1 200 OK\r\n" +
+                        CORS_HEADERS +
+                        "Set-Cookie: session_id=" + sid + "; Path=/; HttpOnly\r\n" +
+                        "Content-Type: application/json\r\n" +
+                        "Content-Length: 15\r\n\r\n" +
+                        "{\"status\":\"ok\"}";
+
                     send(new_socket, resp.c_str(), resp.size(), 0);
+
                 } else {
-                    std::string resp = "HTTP/1.1 401 Unauthorized\r\n\r\n";
+
+                    std::string resp =
+                        "HTTP/1.1 401 Unauthorized\r\n" +
+                        CORS_HEADERS +
+                        "\r\n";
+
                     send(new_socket, resp.c_str(), resp.size(), 0);
                 }
+
                 if (res) mysql_free_result(res);
+
+            } else {
+
+                std::string resp =
+                    "HTTP/1.1 500 Internal Error\r\n" +
+                    CORS_HEADERS +
+                    "\r\n";
+
+                send(new_socket, resp.c_str(), resp.size(), 0);
             }
-        } else if (method == "POST" && path == "/api/signup") {
+        } 
+        else if (method == "POST" && path == "/api/signup") {
+
             std::string username = extract_json_field(body, "username");
             std::string password = extract_json_field(body, "password");
-            std::string query = "INSERT INTO users (username, password) VALUES ('" + username + "', '" + password + "')";
+
+            std::string query =
+                "INSERT INTO users (username, password) VALUES ('" +
+                username + "', '" + password + "')";
+
             if (mysql_query(conn, query.c_str()) == 0) {
-                std::string resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
+
+                std::string resp =
+                    "HTTP/1.1 200 OK\r\n" +
+                    CORS_HEADERS +
+                    "Content-Type: application/json\r\n" +
+                    "Content-Length: 15\r\n\r\n" +
+                    "{\"status\":\"ok\"}";
+
                 send(new_socket, resp.c_str(), resp.size(), 0);
+
             } else if (mysql_errno(conn) == 1062) {
-                std::string resp = "HTTP/1.1 409 Conflict\r\n\r\n";
+
+                std::string resp =
+                    "HTTP/1.1 409 Conflict\r\n" +
+                    CORS_HEADERS +
+                    "\r\n";
+
                 send(new_socket, resp.c_str(), resp.size(), 0);
+
             } else {
-                std::string resp = "HTTP/1.1 500 Internal Error\r\n\r\n";
+
+                std::string resp =
+                    "HTTP/1.1 500 Internal Error\r\n" +
+                    CORS_HEADERS +
+                    "\r\n";
+
                 send(new_socket, resp.c_str(), resp.size(), 0);
             }
-        } else if (method == "POST" && path == "/api/logout") {
+        }
+        else if (method == "POST" && path == "/api/logout") {
             auto pos = reqbuffer.find("session_id=");
             if (pos != std::string::npos) {
                 auto end = reqbuffer.find(";", pos);
